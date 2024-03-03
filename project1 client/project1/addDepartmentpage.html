@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add Department</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      text-align: center;
+      margin-top: 50px;
+      position: relative;
+    }
+
+    #add-department-container {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .logout-button {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .logout-button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <button class="logout-button" onclick="logout()">Log Out</button>
+  <div id="add-department-container">
+    <h2>Add Department</h2>
+    <form id="add-department-form">
+      <label for="department-name">Department Name:</label>
+      <input
+        type="text"
+        id="department-name"
+        name="departmentName"
+        required
+      />
+      <br /><br />
+      <label for="manager">Manager:</label>
+      <select id="manager" name="manager">
+      
+      </select>
+      <br /><br />
+      <button type="button" onclick="saveDepartment()">Save</button>
+    </form>
+  </div>
+  <script>
+    function logout() {
+      sessionStorage.removeItem("username");
+      window.location.href = "login page.html";
+    }
+
+    function showUserName(fullName) {
+      const welcomeMessage = document.createElement("h2");
+      welcomeMessage.innerText = "Welcome, " + fullName + "!";
+      document
+        .getElementById("add-department-container")
+        .insertBefore(
+          welcomeMessage,
+          document.getElementById("add-department-form")
+        );
+    }
+
+    async function fetchManagers() {
+      try {
+        const response = await fetch("https://localhost:44332/api/Department?hasManager=true", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch managers data");
+        }
+
+        const departmentsData = await response.json();
+        return departmentsData;
+      } catch (error) {
+        console.error("Error fetching managers data:", error);
+        return [];
+      }
+    }
+
+    async function populateManagerOptions() {
+      const managerSelect = document.getElementById("manager");
+      const departments = await fetchManagers();
+
+      // Clear existing options
+      managerSelect.innerHTML = "";
+
+      // Create default option
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = "Select Manager";
+      managerSelect.appendChild(defaultOption);
+
+      // Populate options with managers
+      departments.forEach((department) => {
+        const option = document.createElement("option");
+        option.value = department.Manager; 
+        option.textContent = department.Manager; 
+        managerSelect.appendChild(option);
+      });
+    }
+
+    async function saveDepartment() {
+      const departmentName = document.getElementById("department-name").value;
+      const managerId = document.getElementById("manager").value;
+
+      try {
+        const response = await fetch("https://localhost:44332/api/Department", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ Name: departmentName, Manager: managerId }),
+        });
+
+        if (!response.ok) {
+          let errorText = "Failed to add department.";
+          try {
+          
+            const errorResponse = await response.json();
+            if (errorResponse.ExceptionMessage) {
+              errorText += " " + errorResponse.ExceptionMessage;
+            }
+          } catch (parseError) {
+            console.error("Error parsing error response:", parseError);
+            errorText += " Check the console for more details.";
+          }
+
+          console.error(errorText);
+
+      
+          alert("Failed to add department. Please check for related records in other tables.");
+        } else {
+          alert("Department added successfully!");
+          
+          window.location.href = "DepartmentPage.html";
+        }
+      } catch (error) {
+        console.error("Error adding department:", error);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", async function () {
+      var userFullName = sessionStorage.getItem("username");
+      if (!userFullName) {
+      
+        window.location.href = "login page.html";
+      }
+      showUserName(userFullName || "Guest");
+      await populateManagerOptions();
+    });
+  </script>
+</body>
+</html>

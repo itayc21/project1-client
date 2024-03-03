@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Departments</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        text-align: center;
+        margin-top: 50px;
+        position: relative;
+      }
+
+      #departments-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      table {
+        width: 100%;
+        margin-top: 20px;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+      }
+
+      th {
+        background-color: #4caf50;
+        color: white;
+      }
+
+      a {
+        margin-right: 10px;
+        text-decoration: none;
+        color: #007bff;
+      }
+
+      a.delete-link {
+        color: red;
+      }
+
+      .logout-button {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        padding: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .logout-button:hover {
+        background-color: #0056b3;
+      }
+
+      .disabled {
+        pointer-events: none;
+        opacity: 0.5;
+      }
+    </style>
+  </head>
+  <body>
+    <button class="logout-button" onclick="logout()">Log Out</button>
+    <div id="departments-container">
+      <h2 id="welcome-message">Departments</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="departments-table-body"></tbody>
+      </table>
+      <button
+        onclick="redirectToNewDepartment()"
+        id="add-department-btn"
+        class="disabled"
+      >
+        Add Department
+      </button>
+    </div>
+
+    <script>
+      function redirectToNewDepartment() {
+        window.location.href = "addDepartmentpage.html?new=true";
+      }
+
+      function logout() {
+        sessionStorage.removeItem("username");
+        window.location.href = "login page.html";
+      }
+
+      document.addEventListener("DOMContentLoaded", async function () {
+        var username = sessionStorage.getItem("username");
+        var password = sessionStorage.getItem("password");
+
+        var isLoggedIn = username + password;
+
+        if (!isLoggedIn) {
+          window.location.href = "login page.html";
+        }
+
+        function showUserName(fullName) {
+          document.getElementById("welcome-message").innerText =
+            "Welcome, " + fullName + "!";
+        }
+
+        async function fetchDepartmentsData() {
+          try {
+            const response = await fetch(
+              "https://localhost:44332/api/Department",
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error("Failed to fetch departments data");
+            }
+
+            const departmentsData = await response.json();
+            return departmentsData;
+          } catch (error) {
+            console.error("Error fetching departments data:", error);
+            return [];
+          }
+        }
+
+        async function showDepartments() {
+          const departmentsData = await fetchDepartmentsData();
+          const tableBody = document.getElementById("departments-table-body");
+
+          tableBody.innerHTML = "";
+
+          departmentsData.forEach((department, index) => {
+            const row = document.createElement("tr");
+
+            const idCell = document.createElement("td");
+            idCell.innerText = index + 1;
+            row.appendChild(idCell);
+
+            const nameCell = document.createElement("td");
+            nameCell.innerText = department.Name || "N/A";
+            row.appendChild(nameCell);
+
+            const actionCell = document.createElement("td");
+
+            const editButton = document.createElement("button");
+            editButton.innerText = "Edit";
+            editButton.onclick = () => editDepartment(department);
+            actionCell.appendChild(editButton);
+
+            if (!department.Manager) {
+              const deleteLink = document.createElement("a");
+              deleteLink.href = "#";
+              deleteLink.className = "delete-link";
+              deleteLink.onclick = () => deleteDepartment(department.ID || "");
+              deleteLink.innerText = "Delete";
+              actionCell.appendChild(deleteLink);
+            }
+
+            row.appendChild(actionCell);
+            tableBody.appendChild(row);
+          });
+
+          document
+            .getElementById("add-department-btn")
+            .classList.remove("disabled");
+        }
+
+        async function init() {
+          var userFullName = sessionStorage.getItem("username");
+          showUserName(userFullName || "Guest");
+          await showDepartments();
+        }
+
+        init();
+
+        async function editDepartment(department) {
+          sessionStorage.setItem(
+            "editDepartmentData",
+            JSON.stringify(department)
+          );
+          window.location.href = "editDepartmentpage.html";
+        }
+
+        async function deleteDepartment(departmentId) {
+          try {
+            const response = await fetch(
+              `https://localhost:44332/api/Department/${departmentId}`,
+              {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error(
+                `Failed to delete department with ID ${departmentId}`
+              );
+            }
+
+            alert("Department deleted successfully!");
+            showDepartments();
+          } catch (error) {
+            console.error("Error deleting department:", error);
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

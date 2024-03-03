@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employees</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      text-align: center;
+      margin-top: 50px;
+      position: relative;
+    }
+
+    #employees-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      border: 1px solid #dddddd;
+      text-align: left;
+      padding: 8px;
+    }
+
+    th {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    a {
+      margin-right: 10px;
+      text-decoration: none;
+      color: #007bff;
+    }
+
+    a.edit-link {
+      margin-right: 10px;
+      text-decoration: none;
+      color: #17a2b8;
+    }
+
+    a.edit-link:hover {
+      color: #106a7f;
+    }
+
+    a.delete-link {
+      color: red;
+    }
+
+    input[type="search"] {
+      width: 60%;
+      padding: 8px;
+      margin: 10px 0;
+      box-sizing: border-box;
+    }
+
+    input[type="submit"] {
+      padding: 8px;
+    }
+
+    .logout-button {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .logout-button:hover {
+      background-color: #0056b3;
+    }
+
+    .add-shift-button {
+      margin-top: 10px;
+      margin-left: 10px;
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .add-shift-button:hover {
+      background-color: #218838;
+    }
+  </style>
+</head>
+
+<body>
+  <button class="logout-button" onclick="logout()">Log Out</button>
+  <div id="employees-container">
+    <h2 id="welcome-message">Employees</h2>
+    <input
+      type="search"
+      id="searchBox"
+      placeholder="Search by first name, last name, or department"
+    />
+    <input type="submit" value="Search" onclick="searchEmployees()" />
+    <button class="add-shift-button" onclick="redirectToAddShiftPage()">
+      Add Shift
+    </button>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Department</th>
+          <th>Start Work Year</th>
+          <th>Shifts</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="employees-table-body">
+       
+      </tbody>
+    </table>
+  </div>
+  <script>
+    function redirectToAddShiftPage() {
+      window.location.href = "addShifttoemployeepage.html";
+    }
+
+    function logout() {
+      sessionStorage.removeItem("username");
+      window.location.href = "login page.html";
+    }
+
+    function editEmployee(employeeId) {
+      
+      window.location.href = `editEmployeepage.html?employeeId=${employeeId}`;
+    }
+
+    async function deleteEmployee(employeeId) {
+      try {
+        const response = await fetch(`https://localhost:44332/api/Employee/${employeeId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete employee');
+        }
+
+        
+        const row = document.querySelector(`#employees-table-body tr[data-employee-id="${employeeId}"]`);
+        if (row) {
+          row.remove();
+        }
+
+        console.log('Employee deleted successfully');
+      } catch (error) {
+        console.error('Error deleting employee:', error);
+      }
+    }
+
+    function searchEmployees() {
+      var searchQuery = document.getElementById("searchBox").value.toLowerCase();
+      const tableRows = document.querySelectorAll("#employees-table-body tr");
+      const searchResults = [];
+
+      tableRows.forEach((row) => {
+        const employeeData = row.innerText.toLowerCase();
+        if (employeeData.includes(searchQuery)) {
+          row.style.display = "";
+          const employeeId = row.cells[0].innerText;
+          searchResults.push({
+            ID: employeeId,
+            First_Name: row.cells[1].innerText,
+            Last_Name: row.cells[2].innerText,
+            Department: row.cells[3].innerText,
+            Shifts: row.cells[4].innerText,
+          });
+        } else {
+          row.style.display = "none";
+        }
+      });
+
+     
+      sessionStorage.setItem("searchResults", JSON.stringify(searchResults));
+
+     
+      window.location.href = "searchresultspage.html";
+    }
+
+    async function updateTableWithAddedShift() {
+      const addedShiftData = sessionStorage.getItem("addedShift");
+      if (addedShiftData) {
+        const shiftData = JSON.parse(addedShiftData);
+
+       
+        const employeeRow = document.querySelector(`#employees-table-body tr[data-employee-id="${shiftData.EmployeeID}"]`);
+
+        if (employeeRow) {
+          addShiftToRow(employeeRow, shiftData);
+        }
+
+        sessionStorage.removeItem("addedShift");
+      }
+    }
+
+    function addShiftToRow(row, shiftData) {
+      const [date, time] = shiftData.ShiftDateTime.split(" ");
+      const [startTime, endTime] = time.split("-");
+      const formattedShift = `${date} ${startTime} - ${endTime}`;
+
+      const shiftsCell = row.cells[4];
+      if (shiftsCell.innerText === "No Shifts") {
+        shiftsCell.innerText = formattedShift;
+      } else {
+        shiftsCell.innerText += `, ${formattedShift}`;
+      }
+    }
+
+    async function showEmployees() {
+  try {
+    const [employeesData, departmentsData, shiftDataArray] =
+      await Promise.all([
+        fetchEmployeesData(),
+        fetchDepartmentsData(),
+        fetchShiftData(),
+      ]);
+
+    console.log("Employees Data:", employeesData);
+    console.log("Departments Data:", departmentsData);
+    console.log("Shifts Data:", shiftDataArray);
+
+    const tableBody = document.getElementById("employees-table-body");
+    tableBody.innerHTML = "";
+
+    let sequentialId = 1; 
+
+    employeesData.forEach((employee) => {
+      const row = tableBody.insertRow();
+      row.id = `employee-${employee.ID}`; 
+      row.insertCell(0).innerText = sequentialId++; 
+      row.insertCell(1).innerText = employee.First_Name;
+      row.insertCell(2).innerText = employee.Last_Name;
+
+      const department = departmentsData.find(
+        (dept) => dept.ID === employee.DepartmentID
+      );
+      row.insertCell(3).innerText = department ? department.Name : "N/A";
+
+      row.insertCell(4).innerText = employee.Start_Work_Year || "N/A";
+
+      const shiftsCell = row.insertCell(5);
+      shiftsCell.innerText = "Loading...";
+
+      const employeeShifts = shiftDataArray.filter(
+        (shift) => shift.ID === employee.ID
+      );
+
+      console.log(
+        `Employee ID: ${employee.ID} Shifts:`,
+        employeeShifts
+      );
+
+      if (employeeShifts.length > 0) {
+        const shiftsList = employeeShifts.map((shiftData) => {
+          const startDate = new Date(shiftData["Date"]);
+          const startTime = shiftData["Start_Time"];
+          const endTime = shiftData["End_Time"];
+
+          const formattedDate = new Intl.DateTimeFormat("en-US").format(
+            startDate
+          );
+          return `${formattedDate} ${startTime} - ${endTime}`;
+        });
+
+        shiftsCell.innerText = shiftsList.join(", ");
+      } else {
+        shiftsCell.innerText = "No Shifts";
+      }
+
+      const actionCell = row.insertCell(6);
+      const editLink = document.createElement("a");
+      editLink.href = "#";
+      editLink.classList.add("edit-link");
+      editLink.innerText = "Edit";
+      editLink.onclick = function () {
+        editEmployee(employee.ID);
+      };
+      actionCell.appendChild(editLink);
+
+      const deleteLink = document.createElement("a");
+      deleteLink.href = "#";
+      deleteLink.classList.add("delete-link");
+      deleteLink.innerText = "Delete";
+      deleteLink.onclick = function () {
+        if (confirm('Are you sure you want to delete this employee?')) {
+          deleteEmployee(employee.ID);
+        }
+      };
+      actionCell.appendChild(deleteLink);
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+}
+
+
+    async function fetchEmployeesData() {
+      try {
+        const response = await fetch(
+          "https://localhost:44332/api/Employee",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch employees data");
+        }
+
+        const employeesData = await response.json();
+        return employeesData;
+      } catch (error) {
+        console.error("Error fetching employees data:", error);
+        return [];
+      }
+    }
+
+    async function fetchDepartmentsData() {
+      try {
+        const response = await fetch(
+          "https://localhost:44332/api/Department",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch departments data");
+        }
+
+        const departmentsData = await response.json();
+        return departmentsData;
+      } catch (error) {
+        console.error("Error fetching departments data:", error);
+        return [];
+      }
+    }
+
+    async function fetchShiftData() {
+      try {
+        const response = await fetch("https://localhost:44332/api/Shift", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch shift data");
+        }
+
+        const shiftDataArray = await response.json();
+
+        console.log("Shifts Data Array:", shiftDataArray);
+
+        return shiftDataArray;
+      } catch (error) {
+        console.error("Error fetching shift data:", error);
+        return [];
+      }
+    }
+
+    function formatDate(date) {
+      return new Intl.DateTimeFormat("en-US").format(date);
+    }
+
+    function formatTimeFromDuration(duration) {
+      try {
+        const durationInSeconds = parseFloat(duration.substring(2));
+        const hours = Math.floor(durationInSeconds / 3600);
+        const minutes = Math.floor((durationInSeconds % 3600) / 60);
+        return `${
+          hours < 10 ? "0" : ""
+        }${hours}:${minutes < 10 ? "0" : ""}${minutes}`;
+      } catch (error) {
+        console.error("Error formatting duration:", error);
+        return "Invalid Duration";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", async function () {
+      var isLoggedIn = sessionStorage.getItem("username");
+
+      if (!isLoggedIn) {
+        window.location.href = "login page.html";
+      }
+
+      async function showUserName(fullName) {
+        document.getElementById("welcome-message").innerText =
+          "Welcome, " + fullName + "!";
+      }
+
+      var userFullName = sessionStorage.getItem("username");
+      showUserName(userFullName || "Guest");
+
+      updateTableWithAddedShift();
+      showEmployees();
+    });
+  </script>
+</body>
+</html>

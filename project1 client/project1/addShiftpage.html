@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add Shift</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      text-align: center;
+      margin-top: 50px;
+      position: relative;
+    }
+
+    #add-shift-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+    }
+
+    .add-shift-button {
+      padding: 10px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .add-shift-button:hover {
+      background-color: #45a049;
+    }
+
+    .logout-button {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .logout-button:hover {
+      background-color: #0056b3;
+    }
+
+    .user-name {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <button class="logout-button" onclick="logout()">Log Out</button>
+  <div id="add-shift-container">
+    <h2>Add Shift</h2>
+    <p class="user-name" id="user-name"></p>
+
+    <label for="shiftDate">Shift Date:</label>
+    <input type="date" id="shiftDate" />
+
+    <label for="startTime">Start Time:</label>
+    <input type="time" id="startTime" />
+
+    <label for="endTime">End Time:</label>
+    <input type="time" id="endTime" />
+
+    <label for="employeeId">Employee ID(s):</label>
+    <input type="text" id="employeeId" />
+
+    <button class="add-shift-button" onclick="addShift()">Add Shift</button>
+    <button class="logout-button" onclick="goBack()">Go Back</button>
+  </div>
+
+  <script>
+    function logout() {
+      sessionStorage.removeItem("username");
+      window.location.href = "login page.html";
+    }
+
+    function goBack() {
+      window.location.href = "Shiftpage.html";
+    }
+
+    function showUserName(username) {
+      const userNameElement = document.getElementById("user-name");
+
+      if (username) {
+        userNameElement.innerText = "Welcome!: " + username;
+      } else {
+        userNameElement.innerText = "User not logged in";
+      }
+    }
+
+    async function addShift() {
+      try {
+       
+        if (!verifyUser()) {
+          alert("User verification failed. Please log in.");
+          window.location.href = "login page.html";
+          return;
+        }
+
+       
+        const shiftDate = document.getElementById("shiftDate").value;
+        const startTime = document.getElementById("startTime").value;
+        const endTime = document.getElementById("endTime").value;
+        const employeeIds = document.getElementById("employeeId").value;
+
+        
+        const shiftData = {
+          Date: shiftDate,
+          StartTime: startTime,
+          EndTime: endTime,
+          EmployeeIds: employeeIds.split(",").map(id => parseInt(id.trim()))
+        };
+
+        console.log("Shift Data:", shiftData); 
+
+       
+        const response = await fetch("https://localhost:44332/api/ShiftWithEmployeeShifts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(shiftData),
+        });
+
+        console.log("Response:", response); 
+
+        if (!response.ok) {
+          throw new Error("Failed to add shift");
+        }
+
+        console.log("Shift added successfully!");
+
+        
+        window.location.href = "Shiftpage.html";
+      } catch (error) {
+        console.error("Error adding shift:", error);
+        alert("Failed to add shift. Please try again.");
+      }
+    }
+
+
+    function verifyUser() {
+      return true; 
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      var userFullName = sessionStorage.getItem('username');
+
+      if (!userFullName) {
+      
+        window.location.href = 'login page.html';
+      }
+
+      showUserName(userFullName || 'Guest');
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Shift to Employee</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        form {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        select {
+            width: calc(100% - 20px);
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        input[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h2>Add Shift to Employee</h2>
+    <form id="addShiftForm">
+        <label for="employeeId">Employee ID:</label>
+        <input type="text" id="employeeId" name="employeeId" required>
+
+        <label for="shiftSelect">Select Shift:</label>
+        <select id="shiftSelect" name="shiftSelect" required>
+            
+        </select>
+
+        <input type="submit" value="Add Shift">
+    </form>
+
+    <script>
+       
+        function checkLogin() {
+            const userFullName = sessionStorage.getItem("username");
+            if (!userFullName) {
+              
+                window.location.href = "login page.html";
+            } else {
+                
+                showUserName(userFullName);
+            }
+        }
+
+     
+        function showUserName(fullName) {
+            const welcomeMessage = document.createElement("div");
+            welcomeMessage.textContent = "Welcome, " + fullName + "!";
+            document.body.insertBefore(welcomeMessage, document.getElementById("addShiftForm"));
+        }
+
+        function logout() {
+            sessionStorage.removeItem("username");
+            window.location.href = "login page.html";
+        }
+
+        document.addEventListener("DOMContentLoaded", async function () {
+            
+            checkLogin();
+
+            const shiftSelect = document.getElementById("shiftSelect");
+            try {
+                const shiftData = await fetchShiftData();
+                console.log("Shift Data:", shiftData); 
+
+               
+                shiftData.forEach(shift => {
+                    const option = document.createElement("option");
+                    option.value = shift.ID;
+                    option.text = `${shift.Date} ${shift.Start_Time} - ${shift.End_Time}`;
+                    shiftSelect.appendChild(option);
+                });
+
+                console.log("Dropdown Options:", shiftSelect.innerHTML); 
+            } catch (error) {
+                console.error("Error:", error); 
+            }
+        });
+
+        async function fetchShiftData() {
+            try {
+                const response = await fetch("https://localhost:44332/api/Shift", {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch shift data");
+                }
+
+                const shiftData = await response.json();
+                console.log("Shift Data:", shiftData); 
+
+                return shiftData;
+            } catch (error) {
+                console.error("Error fetching shift data:", error);
+                return [];
+            }
+        }
+
+        document.getElementById("addShiftForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+            const employeeId = document.getElementById("employeeId").value;
+            const shiftId = document.getElementById("shiftSelect").value;
+
+            console.log("Employee ID:", employeeId); 
+            console.log("Shift ID:", shiftId); 
+
+            
+            window.location.href = "EmployeePage.html";
+        });
+    </script>
+</body>
+</html>
